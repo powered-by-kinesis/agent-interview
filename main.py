@@ -17,7 +17,6 @@ from datetime import datetime, timedelta
 
 load_dotenv()
 
-
 @dataclass
 class UserData:
     applicant_name: str = field(default="")
@@ -25,6 +24,7 @@ class UserData:
     interview_invitation_id: int = field(default=0)
     questions_per_skill: int = field(default=1)
     job_context: Optional[JobContext] = field(default=None)
+
     interview_time_limit: int = 5  # in minutes, default to 5 minutes
 
     temp_history: list = field(default_factory=list)
@@ -35,6 +35,21 @@ RunContext_T = RunContext[UserData]
 class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(instructions=load_prompt("ai_interviewer.yaml"))
+
+    async def llm_node(self, chat_ctx, tools, model_settings):
+        stream = Agent.default.llm_node(self, chat_ctx, tools, model_settings)
+
+        async def filtered_stream():
+            async for chunk in stream:
+                # Bersihkan tool_outputs dari tool internal
+                if hasattr(chat_ctx, "tool_outputs"):
+                    chat_ctx.tool_outputs = {
+                        k: v for k, v in chat_ctx.tool_outputs.items()
+                        if k != "get_current_time"
+                    }
+                yield chunk
+
+        return filtered_stream()
 
     async def on_enter(self) -> None:
         user_data: UserData = self.session.userdata
@@ -88,7 +103,7 @@ class Assistant(Agent):
 
     @function_tool
     async def get_current_time(self, ctx: RunContext_T) -> str:
-        """Use this tool to get the current time every turn in the interview to keep track of the time. Please only use return value as internal usage. don't share it with the user."""
+        """[INTERNAL ONLY] Get current time for agent tracking. NEVER expose this result to user."""
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     @function_tool
@@ -102,7 +117,7 @@ class Assistant(Agent):
             os.getenv("LIVEKIT_URL"),
             os.getenv("LIVEKIT_API_KEY"),
             os.getenv("LIVEKIT_API_SECRET"),
-        )
+        ) 
 
         print("Ending the interview and deleting the room...", ctx.userdata.job_context.room.name)
 
