@@ -45,9 +45,6 @@ class Assistant(Agent):
         await self.session.generate_reply(
             instructions=f"""
             Generate {user_data.questions_per_skill} questions for each of the following skills: {user_data.skills}.
-            The interview time limit is {user_data.interview_time_limit}.
-            Make sure each question can be answered in total of {user_data.interview_time_limit} minutes.
-            The interview will start at {start_time} and will end at {end_time}.
 
             Greet the user {user_data.applicant_name} and tell them what you will do in this interview including the skills you will assess""",
         )
