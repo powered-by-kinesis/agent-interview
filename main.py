@@ -68,20 +68,23 @@ class Assistant(Agent):
         )
 
     async def on_exit(self):
-        user_data: UserData = self.session.userdata
-        print("Interview ended, saving transcript...")
-        print("Session history:", user_data.temp_history)
-        payload = {
-            "applicant_id": user_data.applicant_id,
-            "invitation_interview_id": user_data.interview_invitation_id,
-            "status": "COMPLETED",
-            "transcript": user_data.temp_history,
-        }
-        request(
-            method="POST",
-            url=f"{os.getenv('API_BASE_URL')}/api/v1/webhook/interview-invitation",
-            json=payload
-        )
+        try:
+            user_data: UserData = self.session.userdata
+            print("Interview ended, saving transcript...")
+            print("Session history:", user_data.temp_history)
+            payload = {
+                "applicant_id": user_data.applicant_id,
+                "invitation_interview_id": user_data.interview_invitation_id,
+                "status": "COMPLETED",
+                "transcript": user_data.temp_history,
+            }
+            request(
+                method="POST",
+                url=f"{os.getenv('API_BASE_URL')}/api/v1/webhook/interview-invitation",
+                json=payload
+            )
+        except Exception as e:
+            print("Error saving transcript:", e)
 
     @function_tool
     async def record_response(self, ctx: RunContext_T, question: str, response: str, skill: str) -> None:
