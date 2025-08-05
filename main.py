@@ -36,21 +36,6 @@ class Assistant(Agent):
     def __init__(self) -> None:
         super().__init__(instructions=load_prompt("ai_interviewer.yaml"))
 
-    async def llm_node(self, chat_ctx, tools, model_settings):
-        stream = Agent.default.llm_node(self, chat_ctx, tools, model_settings)
-
-        async def filtered_stream():
-            async for chunk in stream:
-                # Bersihkan tool_outputs dari tool internal
-                if hasattr(chat_ctx, "tool_outputs"):
-                    chat_ctx.tool_outputs = {
-                        k: v for k, v in chat_ctx.tool_outputs.items()
-                        if k != "get_current_time"
-                    }
-                yield chunk
-
-        return filtered_stream()
-
     async def on_enter(self) -> None:
         user_data: UserData = self.session.userdata
 
@@ -104,10 +89,9 @@ class Assistant(Agent):
             "skill": skill,
         })
 
-    @function_tool
-    async def get_current_time(self, ctx: RunContext_T) -> str:
-        """[INTERNAL ONLY] Get current time for agent tracking. NEVER expose this result to user."""
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # async def get_current_time(self, ctx: RunContext_T) -> str:
+    #     """[INTERNAL ONLY] Get current time for agent tracking. NEVER expose this result to user."""
+    #     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     @function_tool
     async def end_interview(self, ctx: RunContext_T) -> None:
